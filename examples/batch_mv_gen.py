@@ -17,7 +17,6 @@ def parse_args():
     parser.add_argument("--tex_model", type=str, default="tencent/Hunyuan3D-2", help="Path to texture generation model.")
     parser.add_argument("--steps", type=int, default=50, help="Inference steps for shape generation.")
     parser.add_argument("--seed", type=int, default=1234, help="Random seed.")
-    parser.add_argument("--device", type=str, default="cuda", help="Device to use.")
     return parser.parse_args()
 
 def find_image(folder, view_names):
@@ -42,13 +41,12 @@ def main():
     shape_pipeline = Hunyuan3DDiTFlowMatchingPipeline.from_pretrained(
         args.shape_model,
         subfolder=args.shape_subfolder,
-        device=args.device
+        variant='fp16',
     )
     
     print(f"Loading Texture Model: {args.tex_model}...")
     paint_pipeline = Hunyuan3DPaintPipeline.from_pretrained(
         args.tex_model,
-        device=args.device
     )
     
     rembg = BackgroundRemover()
@@ -115,6 +113,8 @@ def main():
         mesh = shape_pipeline(
             image=images_dict,
             num_inference_steps=args.steps,
+            octree_resolution=380,
+            num_chunks=20000,
             generator=torch.manual_seed(args.seed),
             output_type='trimesh'
         )[0]
